@@ -1,0 +1,39 @@
+name: packages
+on: [workflow_dispatch, push]
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-14, arch: arm64, target: macos-app}
+          - {os: macos-13, arch: x64, target: macos-app}
+          - {os: windows-11-arm, arch: arm64, target: windows-installer}
+          - {os: windows-2022, arch: x64, target: windows-installer}
+          - {os: ubuntu-24.04-arm, arch: arm64, target: linux-appimage}
+          - {os: ubuntu-22.04, arch: x64, target: linux-appimage}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install . pyinstaller pytest
+      - run: pytest -q
+      - if: runner.os == 'macOS'
+        run: pyinstaller --noconfirm --name DIY-Particle-Detector --windowed desktop_app.py
+      - if: runner.os == 'Windows'
+        run: pyinstaller --noconfirm --name DIY-Particle-Detector --windowed desktop_app.py
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: choco install innosetup -y; iscc packaging/DIY-Particle-Detector.iss
+      - if: runner.os == 'Linux'
+        run: |
+          pyinstaller --noconfirm --name DIY-Particle-Detector --windowed desktop_app.py
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications
+          cp -r dist/DIY-Particle-Detector/* AppDir/usr/bin/
+          cp packaging/DIY-Particle-Detector.desktop AppDir/
+          cp packaging/DIY-Particle-Detector.desktop AppDir/usr/share/applications/
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage -O appimagetool
+          chmod +x appimagetool; ARCH=$(uname -m) ./appimagetool AppDir dist/DIY-Particle-Detector.AppImage
+      - uses: actions/upload-artifact@v4
+        with: {name: DIY-Particle-Detector-${{ matrix.target }}-${{ matrix.arch }}, path: dist}

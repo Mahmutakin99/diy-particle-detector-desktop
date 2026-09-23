@@ -1,0 +1,12 @@
+# DIY Particle Detector - Required Libraries
+# Optimized for Sr-90 Beta Detection
+# Install using: pip install -r requirements.txt
+
+numpy>=1.26.4
+scipy>=1.13.0
+pandas>=2.2.2
+msgpack>=1.0.8
+PySide6>=6.6
+sounddevice>=0.4.7
+pyqtgraph>=0.13.7
+matplotlib>=3.8.4
