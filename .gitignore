@@ -3,6 +3,11 @@
 .venv/
 __pycache__/
 .pytest_cache/
+*.egg-info/
+.DS_Store
+AppDir/
+appimagetool
+*.spec
 *.pdet
 build/
 dist/

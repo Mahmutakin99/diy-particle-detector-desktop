@@ -189,3 +189,26 @@ The iPadPix tools remain independent command-line tools. `ipadpix_receiver.py --
 ### Packaging
 
 The GitHub Actions workflow builds on each target platform instead of cross-compiling: macOS Intel and Apple Silicon, Windows x64 and ARM64, and Linux x64 and ARM64. It runs tests before uploading each build artifact. Signing and notarization are intentionally not included in this first release.
+
+### Download and launch / İndirip çalıştırma
+
+Download the package for your processor from the [latest release](https://github.com/Mahmutakin99/diy-particle-detector-desktop/releases/latest). These are desktop applications; Python and `pip install` are not needed for the packaged versions.
+
+| System | Package | How to start |
+| --- | --- | --- |
+| macOS Apple Silicon (M1–M series) | `DIY-Particle-Detector-macos-arm64.dmg` | Open the DMG, drag `DIY-Particle-Detector.app` to Applications, then open it there. |
+| macOS Intel | `DIY-Particle-Detector-macos-x64.dmg` | Open the DMG, drag the app to Applications, then open it there. |
+| Linux x64 | `DIY-Particle-Detector-linux-x64.AppImage` | Make the file executable and open it. |
+| Linux ARM64 | `DIY-Particle-Detector-linux-arm64.AppImage` | Make the file executable and open it. |
+| Windows x64/ARM64 | Matching `DIY-Particle-Detector-windows-*-Setup.exe` | Run the installer, then launch it from the Start menu. |
+
+Linux terminal example / Linux terminal örneği:
+
+```sh
+chmod +x DIY-Particle-Detector-linux-x64.AppImage
+./DIY-Particle-Detector-linux-x64.AppImage
+```
+
+If Linux reports a FUSE mounting error, run the same file with `APPIMAGE_EXTRACT_AND_RUN=1` in front of the command. The Linux reference systems are Ubuntu 22.04 x64 and Ubuntu 24.04 ARM64; other distributions need a compatible graphical desktop and system libraries. On macOS, the app is unsigned, so macOS may require **System Settings → Privacy & Security → Open Anyway** on first launch.
+
+Türkçe: Mac'inizde Apple Silicon varsa `macos-arm64.dmg` dosyasını indirin, içindeki uygulamayı **Uygulamalar** klasörüne sürükleyin ve oradan açın. Linux kullanan arkadaşınız işlemcisine uygun AppImage dosyasını indirip çalıştırılabilir yapmalı. Ses girişi iznini işletim sistemi istediğinde verin; gerçek dedektör ölçümü için ayrıca donanım testi gerekir.

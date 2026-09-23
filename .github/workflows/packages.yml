@@ -1,33 +1,61 @@
 name: packages
-on: [workflow_dispatch, push]
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   package:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {os: macos-14, arch: arm64, target: macos-app}
-          - {os: macos-13, arch: x64, target: macos-app}
-          - {os: windows-11-arm, arch: arm64, target: windows-installer}
-          - {os: windows-2022, arch: x64, target: windows-installer}
-          - {os: ubuntu-24.04-arm, arch: arm64, target: linux-appimage}
-          - {os: ubuntu-22.04, arch: x64, target: linux-appimage}
+          - {os: macos-15, arch: arm64, target: macos, asset: DIY-Particle-Detector-macos-arm64.dmg}
+          - {os: macos-15-intel, arch: x64, target: macos, asset: DIY-Particle-Detector-macos-x64.dmg}
+          - {os: windows-11-arm, arch: arm64, target: windows, asset: DIY-Particle-Detector-windows-arm64-Setup.exe}
+          - {os: windows-2022, arch: x64, target: windows, asset: DIY-Particle-Detector-windows-x64-Setup.exe}
+          - {os: ubuntu-24.04-arm, arch: arm64, target: linux, asset: DIY-Particle-Detector-linux-arm64.AppImage}
+          - {os: ubuntu-22.04, arch: x64, target: linux, asset: DIY-Particle-Detector-linux-x64.AppImage}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: {python-version: '3.11'}
+        with:
+          python-version: '3.11'
       - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libegl1
-      - run: pip install . pyinstaller pytest
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libportaudio2 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 libxcb-util1 libxcb-xkb1 libxkbcommon-x11-0 desktop-file-utils xvfb xauth
+      - run: pip install . pyinstaller pytest pillow
       - run: pytest -q
+
       - if: runner.os == 'macOS'
-        run: pyinstaller --noconfirm --name DIY-Particle-Detector --windowed desktop_app.py
-      - if: runner.os == 'Windows'
-        run: pyinstaller --noconfirm --name DIY-Particle-Detector --windowed desktop_app.py
+        run: |
+          pyinstaller --noconfirm --name DIY-Particle-Detector --windowed --icon packaging/DIY-Particle-Detector.png desktop_app.py
+          QT_QPA_PLATFORM=offscreen python packaging/smoke_bundle.py dist/DIY-Particle-Detector.app/Contents/MacOS/DIY-Particle-Detector
+          mkdir -p "$RUNNER_TEMP/dmg-root"
+          cp -R dist/DIY-Particle-Detector.app "$RUNNER_TEMP/dmg-root/"
+          ln -s /Applications "$RUNNER_TEMP/dmg-root/Applications"
+          hdiutil create -volname "DIY Particle Detector" -srcfolder "$RUNNER_TEMP/dmg-root" -format UDZO -ov "dist/${{ matrix.asset }}"
+
       - if: runner.os == 'Windows'
         shell: powershell
-        run: choco install innosetup -y; iscc packaging/DIY-Particle-Detector.iss
+        run: |
+          pyinstaller --noconfirm --name DIY-Particle-Detector --windowed --icon packaging/DIY-Particle-Detector.png desktop_app.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python packaging/smoke_bundle.py dist/DIY-Particle-Detector/DIY-Particle-Detector.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          choco install innosetup -y
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          iscc packaging/DIY-Particle-Detector.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Move-Item dist/DIY-Particle-Detector-Setup.exe "dist/${{ matrix.asset }}"
+
       - if: runner.os == 'Linux'
         run: |
           pyinstaller --noconfirm --name DIY-Particle-Detector --windowed desktop_app.py
@@ -35,9 +63,31 @@ jobs:
           cp -r dist/DIY-Particle-Detector/* AppDir/usr/bin/
           cp packaging/DIY-Particle-Detector.desktop AppDir/
           cp packaging/DIY-Particle-Detector.desktop AppDir/usr/share/applications/
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage -O appimagetool
-          chmod +x appimagetool; ARCH=$(uname -m) ./appimagetool AppDir dist/DIY-Particle-Detector.AppImage
+          cp packaging/DIY-Particle-Detector.png AppDir/
+          ln -s DIY-Particle-Detector.png AppDir/.DirIcon
+          ln -s usr/bin/DIY-Particle-Detector AppDir/AppRun
+          desktop-file-validate AppDir/DIY-Particle-Detector.desktop
+          wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage" -O appimagetool
+          chmod +x appimagetool
+          ARCH=$(uname -m) ./appimagetool AppDir "dist/${{ matrix.asset }}"
+          xvfb-run -a python packaging/smoke_bundle.py "dist/${{ matrix.asset }}"
+
       - uses: actions/upload-artifact@v4
         with:
           name: DIY-Particle-Detector-${{ matrix.target }}-${{ matrix.arch }}
-          path: dist
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: DIY-Particle-Detector-*
+          merge-multiple: true
+          path: release-assets
+      - run: gh release create "$GITHUB_REF_NAME" release-assets/* --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

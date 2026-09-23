@@ -2,5 +2,6 @@
 Type=Application
 Name=DIY Particle Detector
 Exec=DIY-Particle-Detector
-Categories=Science;Education;
+Icon=DIY-Particle-Detector
+Categories=Education;
 Terminal=false

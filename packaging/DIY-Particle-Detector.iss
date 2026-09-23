@@ -1,6 +1,6 @@
 [Setup]
 AppName=DIY Particle Detector
-AppVersion=0.1.0
+AppVersion=0.1.1
 DefaultDirName={autopf}\DIY Particle Detector
 OutputDir=..\dist
 OutputBaseFilename=DIY-Particle-Detector-Setup

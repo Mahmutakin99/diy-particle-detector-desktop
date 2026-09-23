@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -168,20 +169,39 @@ class MainWindow(QtWidgets.QMainWindow):
             answer = QtWidgets.QMessageBox.warning(self, self.t("choose_file"), self.t("pickle_warning"), QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             trusted = answer == QtWidgets.QMessageBox.Yes
         try:
-            recording = load_recording(path, trusted_pickle=trusted, profile=self.profile.currentText())
-            self.records_status.setText(f"{len(recording.pulses)} pulses · {recording.profile} · {recording.sample_rate} Hz")
-            self.records_list.addItem(str(path))
-            if recording.pulses:
-                amplitudes = np.abs([pulse.peak for pulse in recording.pulses])
-                counts, edges = np.histogram(amplitudes, bins=min(64, max(8, len(amplitudes))))
-                self.spectrum_curve.setData(edges, counts)
+            self.open_recording(path, trusted_pickle=trusted)
         except Exception as error:
             self.records_status.setText(str(error))
+
+    def open_recording(self, path: Path, *, trusted_pickle: bool = False):
+        recording = load_recording(path, trusted_pickle=trusted_pickle, profile=self.profile.currentText())
+        self.records_status.setText(f"{len(recording.pulses)} pulses · {recording.profile} · {recording.sample_rate} Hz")
+        self.records_list.addItem(str(path))
+        if recording.pulses:
+            amplitudes = np.abs([pulse.peak for pulse in recording.pulses])
+            counts, edges = np.histogram(amplitudes, bins=min(64, max(8, len(amplitudes))))
+            self.spectrum_curve.setData(edges, counts)
+        return recording
 
 
 def main():
     app = QtWidgets.QApplication(sys.argv); app.setStyle("Fusion")
-    window = MainWindow(); window.show(); return app.exec()
+    window = MainWindow(); window.show()
+    smoke_path = os.environ.get("PDET_SMOKE_RECORDING")
+    if smoke_path:
+        try:
+            app.processEvents()
+            recording = window.open_recording(Path(smoke_path))
+            if output := os.environ.get("PDET_SMOKE_OUTPUT"):
+                Path(output).write_text(f"pulses={len(recording.pulses)} profile={recording.profile}\n")
+            window.close()
+            return 0
+        except Exception as error:
+            if output := os.environ.get("PDET_SMOKE_OUTPUT"):
+                Path(output).write_text(f"error={error}\n")
+            window.close()
+            return 1
+    return app.exec()
 
 
 if __name__ == "__main__":
