@@ -33,7 +33,7 @@ def test_legacy_msgp_milliseconds_and_waveforms():
 
 
 def test_legacy_pickle_both_dataframe_shapes(tmp_path):
-    pd = pytest.importorskip("pandas")
+    import pandas as pd
     old = tmp_path / "old.pkl"
     pd.DataFrame([{"ts": datetime(2020, 1, 1, tzinfo=timezone.utc), "ptype": "beta", "pulse": np.array([0, -500, 0])}]).to_pickle(old)
     modern = tmp_path / "modern.pkl"
