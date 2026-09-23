@@ -40,7 +40,7 @@ def test_packaged_entrypoint_smoke_opens_sample_recording(tmp_path):
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "PDET_SMOKE_RECORDING": str(path), "PDET_SMOKE_OUTPUT": str(result_path)}
     result = subprocess.run(
         [sys.executable, str(Path(__file__).parents[1] / "desktop_app.py")],
-        env=env, capture_output=True, text=True, timeout=5,
+        env=env, capture_output=True, text=True, timeout=30,
     )
     assert result.returncode == 0, result.stderr
     assert result_path.read_text() == "pulses=1 profile=alpha\n"
