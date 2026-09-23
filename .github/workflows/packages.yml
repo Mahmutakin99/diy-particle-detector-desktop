@@ -36,4 +36,6 @@ jobs:
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage -O appimagetool
           chmod +x appimagetool; ARCH=$(uname -m) ./appimagetool AppDir dist/DIY-Particle-Detector.AppImage
       - uses: actions/upload-artifact@v4
-        with: {name: DIY-Particle-Detector-${{ matrix.target }}-${{ matrix.arch }}, path: dist}
+        with:
+          name: DIY-Particle-Detector-${{ matrix.target }}-${{ matrix.arch }}
+          path: dist
