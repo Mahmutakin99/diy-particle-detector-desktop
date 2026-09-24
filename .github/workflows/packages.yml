@@ -37,6 +37,13 @@ jobs:
       - if: runner.os == 'macOS'
         run: |
           pyinstaller --noconfirm --name DIY-Particle-Detector --windowed --icon packaging/DIY-Particle-Detector.png desktop_app.py
+          /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string Use the selected audio input to record detector pulses.' dist/DIY-Particle-Detector.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleShortVersionString 0.1.1' dist/DIY-Particle-Detector.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier io.github.mahmutakin99.diy-particle-detector' dist/DIY-Particle-Detector.app/Contents/Info.plist
+          cp -R packaging/macos/en.lproj packaging/macos/tr.lproj dist/DIY-Particle-Detector.app/Contents/Resources/
+          codesign --force --deep --sign - --timestamp=none dist/DIY-Particle-Detector.app
+          codesign --verify --deep --strict dist/DIY-Particle-Detector.app
+          plutil -extract NSMicrophoneUsageDescription raw -o - dist/DIY-Particle-Detector.app/Contents/Info.plist
           QT_QPA_PLATFORM=offscreen python packaging/smoke_bundle.py dist/DIY-Particle-Detector.app/Contents/MacOS/DIY-Particle-Detector
           mkdir -p "$RUNNER_TEMP/dmg-root"
           cp -R dist/DIY-Particle-Detector.app "$RUNNER_TEMP/dmg-root/"
@@ -59,6 +66,7 @@ jobs:
       - if: runner.os == 'Linux'
         run: |
           pyinstaller --noconfirm --name DIY-Particle-Detector --windowed desktop_app.py
+          test -n "$(find dist/DIY-Particle-Detector -name 'libportaudio*.so*' -print -quit)"
           mkdir -p AppDir/usr/bin AppDir/usr/share/applications
           cp -r dist/DIY-Particle-Detector/* AppDir/usr/bin/
           cp packaging/DIY-Particle-Detector.desktop AppDir/
@@ -91,3 +99,4 @@ jobs:
       - run: gh release create "$GITHUB_REF_NAME" release-assets/* --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
