@@ -48,7 +48,12 @@ jobs:
           mkdir -p "$RUNNER_TEMP/dmg-root"
           cp -R dist/DIY-Particle-Detector.app "$RUNNER_TEMP/dmg-root/"
           ln -s /Applications "$RUNNER_TEMP/dmg-root/Applications"
-          hdiutil create -volname "DIY Particle Detector" -srcfolder "$RUNNER_TEMP/dmg-root" -format UDZO -ov "dist/${{ matrix.asset }}"
+          for attempt in 1 2 3; do
+            hdiutil create -volname "DIY Particle Detector" -srcfolder "$RUNNER_TEMP/dmg-root" -format UDZO -ov "dist/${{ matrix.asset }}" && break
+            test "$attempt" = 3 && exit 1
+            sleep 5
+          done
+          hdiutil verify "dist/${{ matrix.asset }}"
 
       - if: runner.os == 'Windows'
         shell: powershell
